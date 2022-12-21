@@ -3,12 +3,31 @@
 #include<stdexcept>
 #include<vector>
 using namespace std;
+
 template <typename T>
 class Image {
 private:
 	vector<vector<T>> image;
 	size_t width, height;
 public:
+	struct proxy {
+	private:
+		T* ptr;
+	public:
+		proxy(T* ptr) : ptr(ptr) {}
+
+
+
+		proxy& operator=(const T& value) {
+			*ptr = value;
+			return *this;
+		}
+
+		operator T() const {
+			return *ptr;
+		}
+	};
+
 	void get_roi(const Image& a_image, size_t& x_min, size_t& y_min, size_t& result_width, size_t& result_height)
 	{
 		if (width > a_image.width) {
@@ -53,8 +72,8 @@ public:
 	Image(const size_t a_width, const size_t a_height);
 	Image(const Image& image_copy);
 	~Image();
-	T& operator()(const size_t a_width, const size_t a_height);
-	T operator()(const size_t a_width, const size_t a_height) const;
+	proxy operator()(const size_t a_width, const size_t a_height);
+	proxy operator()(const size_t a_width, const size_t a_height) const;
 	Image operator =(const Image& a_image);
 	Image operator *(const Image& a_image) const;
 	Image operator +(const Image& a_image) const;
@@ -98,17 +117,17 @@ Image<T>::Image(const Image& image_copy) {
 }
 
 template <typename T>
-T& Image<T>::operator()(const size_t a_width, const size_t a_height) {
+typename Image<T>::proxy Image<T>::operator()(const size_t a_width, const size_t a_height) {
 	if (a_width > width - 1 || a_height > height - 1)
 		throw std::out_of_range( "Incorrect coordinates" );
-	return image[a_width][a_height];
+	return proxy(&image[a_width][a_height]);
 }
 
 template <typename T>
-T Image<T>::operator()(const size_t a_width, const size_t a_height) const {
+typename Image<T>::proxy Image<T>::operator()(const size_t a_width, const size_t a_height) const {
 	if (a_width > width - 1 || a_height > height - 1)
 		throw std::out_of_range( "Incorrect coordinates" );
-	return image[a_width][a_height];
+	return proxy(&image[a_width][a_height]);
 }
 
 template <typename T>
@@ -326,15 +345,11 @@ ostream& operator <<(ostream& os, const Image<char>& a_image) {
 template <typename T>
 double Image<T>::ratio() const {
 	double temp = 0, d_width = width, d_height = height;
-	size_t k = 0;
-	size_t m = 0;
 	for (auto i : image) {
 		for (auto j : i) {
-			if (image[i][j])
+			if (j)
 				temp++;
-			k++;
 		}
-		m++;
 	}
 	return(temp / (d_width * d_height));
 }
